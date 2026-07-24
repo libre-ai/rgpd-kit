@@ -66,8 +66,9 @@ categories declare `erasureScope: "deferred"`.
 ## Sessions example (first adopter)
 
 - Port implementation: `apps/sessions/src/rgpd/data-subject-rights.ts`
-  (access + erasure + portability implemented; restriction refuses
-  `sessions.rgpd.not_implemented`, deferred).
+  (access + erasure + portability + restriction implemented; see
+  `apps/sessions/README.md`'s RGPD section for the restriction invariant and
+  the two-step Art. 18(3) lift).
 - Tombstone + audit migrations: `apps/sessions/migrations/0002_rgpd.sql`
   (`session_deleted_subjects`, `session_subject_audit` — append-only, FORCE
   RLS).
@@ -88,6 +89,3 @@ categories declare `erasureScope: "deferred"`.
 - **Legal hold / court orders** — documented in ADR-0002 and DATA-LIFECYCLE
   §Legal hold; implementation deferred until the enforcement process is
   defined (owner decision 2026-07-23).
-- **Sessions restriction (Art. 18)** — typed refusal until a bounded
-  increment defines what pausing processing means for the append-only log
-  (flag store + read-path contract); portability (Art. 20) is implemented.

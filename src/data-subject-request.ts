@@ -28,6 +28,16 @@ export const REQUEST_STATUSES = [
 ] as const;
 export type RequestStatus = (typeof REQUEST_STATUSES)[number];
 
+// Art. 18(1) grounds: the reason belongs to the subject and must enter
+// through the request, not be invented by the implementation.
+export const RESTRICTION_GROUNDS = [
+  "accuracy-contested",
+  "unlawful-opposed-erasure",
+  "needed-for-legal-claims",
+  "objection-pending",
+] as const;
+export type RestrictionGround = (typeof RESTRICTION_GROUNDS)[number];
+
 // Patterns are the LOCKED common.v1 definitions — replicated verbatim, not
 // reinvented (contracts/schemas/common.v1.schema.json#/$defs).
 const PRIVATE_TENANT_ID = /^ten_[a-z0-9]{16,64}$/;
@@ -82,6 +92,10 @@ export function computeResponseDeadline(receivedAt: string): string {
 
 function isIn<T extends string>(values: readonly T[], value: unknown): value is T {
   return typeof value === "string" && (values as readonly string[]).includes(value);
+}
+
+export function isRestrictionGround(value: unknown): value is RestrictionGround {
+  return isIn(RESTRICTION_GROUNDS, value);
 }
 
 export function validateDataSubjectRequest(input: unknown): DataSubjectRequest {
@@ -175,6 +189,7 @@ export interface RestrictionFulfilled {
   readonly requestId: string;
   readonly restrictedAt: string;
   readonly affectedRecords: number;
+  readonly ground: RestrictionGround;
 }
 export type RestrictionRequestResult = RestrictionFulfilled | RgpdRefusal;
 

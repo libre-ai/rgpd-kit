@@ -22,6 +22,7 @@ function createInMemoryAdopter(): {
 } {
   const rowsBySubject = new Map<string, string[]>();
   const erased = new Set<string>();
+  const restricted = new Set<string>();
   let requestCounter = 0;
   const nextRequestId = () => {
     requestCounter += 1;
@@ -84,11 +85,29 @@ function createInMemoryAdopter(): {
         categoriesErased: ["interaction"],
       };
     },
-    async handleRestrictionRequest(): Promise<RestrictionRequestResult> {
+    async handleRestrictionRequest(
+      tenantId,
+      subjectDigest,
+      ground,
+    ): Promise<RestrictionRequestResult> {
+      const requestId = nextRequestId();
+      if (erased.has(subjectDigest)) {
+        return { status: "refused", requestId, refusal: "test-product.rgpd.subject_erased" };
+      }
+      if (restricted.has(subjectDigest)) {
+        return { status: "refused", requestId, refusal: "test-product.rgpd.already_restricted" };
+      }
+      const identifier = await resolve(tenantId, subjectDigest);
+      if (identifier === null) {
+        return { status: "refused", requestId, refusal: "test-product.rgpd.subject_unknown" };
+      }
+      restricted.add(subjectDigest);
       return {
-        status: "refused",
-        requestId: nextRequestId(),
-        refusal: "test-product.rgpd.not_implemented",
+        status: "fulfilled",
+        requestId,
+        restrictedAt: "2026-07-23T12:00:00Z",
+        affectedRecords: rowsBySubject.get(identifier)?.length ?? 0,
+        ground,
       };
     },
     async handlePortabilityRequest(): Promise<PortabilityRequestResult> {
@@ -155,17 +174,60 @@ describe("DataSubjectRightsPort contract", () => {
     });
   });
 
-  test("deferred rights refuse with a typed code instead of throwing", async () => {
+  test("portability remains a deferred right, refusing with a typed code instead of throwing", async () => {
     const { port, seed } = createInMemoryAdopter();
     seed("member-alice", ["row-1"]);
     const digest = (await port.verifySubject(TENANT, "member-alice")) as string;
-    expect(await port.handleRestrictionRequest(TENANT, digest)).toMatchObject({
-      status: "refused",
-      refusal: "test-product.rgpd.not_implemented",
-    });
     expect(await port.handlePortabilityRequest(TENANT, digest)).toMatchObject({
       status: "refused",
       refusal: "test-product.rgpd.not_implemented",
+    });
+  });
+
+  test("restriction: unknown subject refuses subject_unknown", async () => {
+    const { port } = createInMemoryAdopter();
+    const ghostDigest = await deriveSubjectDigest(TENANT, "member-ghost");
+    expect(
+      await port.handleRestrictionRequest(TENANT, ghostDigest, "accuracy-contested"),
+    ).toMatchObject({
+      status: "refused",
+      refusal: "test-product.rgpd.subject_unknown",
+    });
+  });
+
+  test("restriction: an erased subject refuses subject_erased", async () => {
+    const { port, seed } = createInMemoryAdopter();
+    seed("member-alice", ["row-1"]);
+    const digest = (await port.verifySubject(TENANT, "member-alice")) as string;
+    await port.handleErasureRequest(TENANT, digest);
+    expect(await port.handleRestrictionRequest(TENANT, digest, "accuracy-contested")).toMatchObject(
+      {
+        status: "refused",
+        refusal: "test-product.rgpd.subject_erased",
+      },
+    );
+  });
+
+  test("restriction: first request fulfills and echoes the ground", async () => {
+    const { port, seed } = createInMemoryAdopter();
+    seed("member-alice", ["row-1", "row-2"]);
+    const digest = (await port.verifySubject(TENANT, "member-alice")) as string;
+    const result = await port.handleRestrictionRequest(TENANT, digest, "accuracy-contested");
+    expect(result).toMatchObject({
+      status: "fulfilled",
+      ground: "accuracy-contested",
+      affectedRecords: 2,
+    });
+  });
+
+  test("restriction: a second request while restricted refuses already_restricted", async () => {
+    const { port, seed } = createInMemoryAdopter();
+    seed("member-alice", ["row-1"]);
+    const digest = (await port.verifySubject(TENANT, "member-alice")) as string;
+    await port.handleRestrictionRequest(TENANT, digest, "accuracy-contested");
+    expect(await port.handleRestrictionRequest(TENANT, digest, "objection-pending")).toMatchObject({
+      status: "refused",
+      refusal: "test-product.rgpd.already_restricted",
     });
   });
 

@@ -20,6 +20,7 @@ import type {
   AccessRequestResult,
   ErasureRequestResult,
   PortabilityRequestResult,
+  RestrictionGround,
   RestrictionRequestResult,
 } from "../data-subject-request";
 
@@ -44,10 +45,15 @@ export interface DataSubjectRightsPort {
    */
   handleErasureRequest(tenantId: string, subjectDigest: string): Promise<ErasureRequestResult>;
 
-  /** Art. 18 — pause processing while keeping the data. */
+  /**
+   * Art. 18 — pause processing while keeping the data. `ground` is one of
+   * the Art. 18(1) grounds: it belongs to the subject and enters through the
+   * request, never invented by the implementation.
+   */
   handleRestrictionRequest(
     tenantId: string,
     subjectDigest: string,
+    ground: RestrictionGround,
   ): Promise<RestrictionRequestResult>;
 
   /** Art. 20 — export in an interoperable format for another controller. */
