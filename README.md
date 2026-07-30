@@ -89,3 +89,19 @@ categories declare `erasureScope: "deferred"`.
 - **Legal hold / court orders** — documented in ADR-0002 and DATA-LIFECYCLE
   §Legal hold; implementation deferred until the enforcement process is
   defined (owner decision 2026-07-23).
+
+## État du projet
+
+<!-- libre-ai:project-status:begin -->
+<!-- Section générée depuis project.v1.yaml — ne pas éditer à la main. -->
+
+- Situation actuelle : Née verte en γ 3.4 (ex packages/rgpd-kit) ; sessions l'exerce de bout en bout.
+- Maturité : usable
+- Exposition : spec-published
+- Confiance : medium
+- Preuves vérifiées le : 2026-07-30
+- Avancement : 50 % du périmètre actuellement déclaré
+
+<!-- libre-ai:project-status:end -->
+
+La fiche [`project.v1.yaml`](./project.v1.yaml) est l'autorité de l'état du projet ; cette section en est générée et le gate de flotte échoue si elles divergent.
